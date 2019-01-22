@@ -6,7 +6,7 @@ const { produce } = require('immer')
 const THREE = require('three')
 const { sv } = require('seview')
 
-h = sv(node => {
+const h = sv(node => {
   if (typeof node === "string") {
     return node;
   }
