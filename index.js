@@ -6,6 +6,9 @@ const { produce } = require('immer')
 const THREE = require('three')
 const { sv } = require('seview')
 
+const { from, animationFrameScheduler, interval } = require('rxjs')
+const { map, scan, withLatestFrom } = require('rxjs/operators')
+
 const h = sv(node => {
   if (typeof node === "string") {
     return node;
@@ -99,7 +102,8 @@ const setup = () => {
   const UPDATE = Symbol('update')
   const DELETE = Symbol('delete')
 
-  return state => {
+  // render function
+  return ({ time, delta, ...state }) => {
     let tasks = []
 
     // if object is new, create
@@ -174,9 +178,24 @@ const Component = ({ scene, ...props }) => {
 
 const render = setup()
 
-store.subscribe(() => {
-  let state = store.getState()
-  render(state)
+const state$ = from(store)
+
+const clock$ = interval(0, animationFrameScheduler).pipe(
+  scan((previous) => {
+    const time = performance.now()
+    return {
+      time,
+      delta: time - previous.time,
+    }
+  }, {
+    time: performance.now(),
+    delta: 0,
+  }))
+
+const loop$ = clock$.pipe(withLatestFrom(state$, (clock, state) => ({ clock, state })))
+
+loop$.subscribe(({ clock, state }) => {
+  render({ ...clock, ...state })
 })
 
 store.dispatch(objectCreate(THREE.Math.generateUUID(), { x: 0, y: 0, z: 0 }))
