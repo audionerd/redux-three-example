@@ -128,11 +128,11 @@ const setup = () => {
       } else {
         // the object is in the scene, but not the list
         // so we're supposed to remove it from the scene
-        tasks.push([DELETE, { object, component }])
+        tasks.push([DELETE, { id }])
       }
     }
 
-    for (let [kind, { object, component }] of tasks) {
+    for (let [kind, { id, object, component }] of tasks) {
       switch (kind) {
         case CREATE:
           console.log('new', object.id)
@@ -144,9 +144,9 @@ const setup = () => {
           cache[object.id] = { component: Component({ scene, ...object }), props: object }
           break
         case DELETE:
-          console.log('delete', object.id)
-          cache[object.id].component()
-          delete cache[object.id]
+          console.log('delete', id)
+          cache[id].component()
+          delete cache[id]
           break
       }
     }
@@ -186,23 +186,74 @@ const Explorer = connect(
     objects: state.objects
   }),
   {
-    objectUpdate
+    objectUpdate,
+    objectCreate,
+    objectDelete
   }
 )(
   ({
     objects,
-    objectUpdate
+    objectUpdate,
+    objectCreate,
+    objectDelete
   }) => {
-    let object = Object.values(objects)[0]
-
-    const onChange = event => {
-      objectUpdate(object.id, { x: parseFloat(event.target.value) })
+    const onAdd = event => {
+      objectCreate(THREE.Math.generateUUID(), { x: 0, y: 0, z: 0 })
     }
+    const onRemove = event => {
+      let values = Object.values(objects)
+      let last = values[values.length - 1]
+      if (last) {
+        objectDelete(last.id)
+      }
+    }
+
     return h(['div', 'Explorer', [
+      Object.values(objects).map(object => [
+        ['div', { style: { paddingBottom: 10 } }, [
+          ['div', [
+            ['span', 'x'],
+            ['input[type=range]', {
+              value: object.x,
+              min: -5,
+              max: 5,
+              step: 0.1,
+              onChange: event => objectUpdate(object.id, { x: parseFloat(event.target.value) })
+            }]
+          ]],
+
+          ['div', [
+            ['span', 'y'],
+            ['input[type=range]', {
+              value: object.y,
+              min: -5,
+              max: 5,
+              step: 0.1,
+              onChange: event => objectUpdate(object.id, { y: parseFloat(event.target.value) })
+            }]
+          ]],
+
+          ['div', [
+            ['span', 'z'],
+            ['input[type=range]', {
+              value: object.z,
+              min: -5,
+              max: 5,
+              step: 0.1,
+              onChange: event => objectUpdate(object.id, { z: parseFloat(event.target.value) })
+            }]
+          ]]
+        ]]
+      ]),
+
+      ['div', { style: { marginBottom: 20 } }, [
+        ['button', { onClick: onAdd }, 'Add']
+      ]],
+
       ['div', [
-        ['span', 'x pos'],
-        ['input[type=range]', { value: object.x, min: -5, max: 5, step: 0.1, onChange }]
-      ]]
+        ['button', { onClick: onRemove }, 'Remove']
+      ]],
+
     ]])
   }
 )
